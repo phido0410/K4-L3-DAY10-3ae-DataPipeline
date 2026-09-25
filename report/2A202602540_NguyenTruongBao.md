@@ -32,7 +32,7 @@ Là người phụ trách khối đầu vào (Ingestion & Cleaning), phần vi�
 | Hoạt động | Thành viên/module được hỗ trợ | Kết quả |
 | :--- | :--- | :--- |
 | **Thống nhất Clean Schema Contract** | Toàn đội (`retrieval/index.py`, `observability/quality.py`) | Đảm bảo 100% khớp các cột bắt buộc: `paper_id`, `title`, `summary`, `authors_joined`, `categories_joined`, `age_days`, `text_for_embedding`, giúp Vector Store và GX chạy thông suốt không lỗi schema. |
-| **Kiểm tra tính Idempotent cho luồng Repair** | Đỗ Ngọc Phi (`corruption_flow.py`) | Xác minh hàm `load_raw_records` và `build_clean_dataframe` có khả năng tái tạo nguyên vẹn 24 dòng dữ liệu sạch từ file raw; việc phục hồi chỉ số retrieval là dự kiến / sẽ xác minh sau khi chạy `run_corruption_flow.py`. |
+| **Kiểm tra tính Idempotent cho luồng Repair** | Đỗ Ngọc Phi (`corruption_flow.py`) | Xác minh hàm `load_raw_records` và `build_clean_dataframe` tái tạo nguyên vẹn 24 dòng sạch từ file raw; kết quả thực tế luồng repair: GX 6/6 PASS, is_fresh = True, Hit Rate 1.0 và Token F1 1.0, dữ liệu trùng khớp baseline. |
 
 ---
 
@@ -175,20 +175,20 @@ python -c "from datetime import datetime, timezone; from core.config import load
 
 ## 8. Phân tích kết quả
 
-### Metrics chính (Dự kiến & Đối chiếu toàn luồng)
+### Metrics chính
 
 | Metric/signal | Baseline | Corrupted | Repaired | Nhận xét của cá nhân |
 | :--- | :---: | :---: | :---: | :--- |
-| `retrieval_hit_rate` | 1.000 | 0.400 – 0.500 | 1.000 | Bị suy giảm khi tiêm lỗi; mức phục hồi là dự kiến / sẽ xác minh sau khi chạy `run_corruption_flow.py` |
-| `mean_token_f1` | Cao (0.80+) | Giảm mạnh (< 0.40) | Cao (0.80+) | Dự kiến phục hồi sau repair / sẽ xác minh sau khi chạy `run_corruption_flow.py` |
-| Quality checks (GX) | **Passed (True)** | **Failed (False)** | **Passed (True)** | Chốt kiểm soát GX 1.x phát hiện chính xác khi summary rỗng / id trùng lặp |
-| Freshness status | **Fresh (True)** | **Stale (False)** | **Fresh (True)** | SLA cảnh báo ngay khi ngày xuất bản bị lùi về quá khứ 365 ngày |
+| `retrieval_hit_rate` | 1.000 | 0.900 | 1.000 | Chỉ 1/10 câu mất tài liệu (eval_004, bài bị drop_latest); repair phục hồi đủ |
+| `mean_token_f1` | 1.000 | 0.582 | 1.000 | Giảm do summary rỗng, ngày bị lùi và nhiễu; repair phục hồi đủ |
+| Quality checks (GX) | **Passed (True)** | **Failed (False)** | **Passed (True)** | Chốt kiểm soát GX 1.x phát hiện chính xác khi summary rỗng (3/22) / id trùng lặp (6/22) |
+| Freshness status | **Fresh (True)** | **Stale (False)** | **Fresh (True)** | SLA cảnh báo khi ngày xuất bản bị lùi về quá khứ (8/22 bài quá hạn) |
 
 ### Kết luận từ số liệu
 1. **Chuỗi nguyên nhân – bằng chứng 1:**
-   `Tiêm lỗi blank summary & drop 20% bài mới` → `GX kiểm tra phát hiện summary rỗng & Freshness SLA cảnh báo tài liệu quá hạn` → `Retrieval Hit Rate rơi thẳng đứng do vector search không thể tìm thấy ngữ cảnh bị thiếu`.
+   `Tiêm lỗi blank summary` → `GX FAIL expectation độ dài summary (3/22 dòng)` → `eval_001, eval_005 trả lời rỗng, Token F1 = 0`.
 2. **Chuỗi nguyên nhân – bằng chứng 2:**
-   `Kích hoạt Idempotent Repair từ snapshot thô crossref_records.json` → `Clean pipeline tái tạo 24 dòng đạt chuẩn, GX và Freshness phục hồi trạng thái True` → `ChromaDB index papers-repaired: dự kiến / sẽ xác minh sau khi chạy run_corruption_flow.py`.
+   `Kích hoạt Idempotent Repair từ snapshot thô crossref_records.json` → `Clean pipeline tái tạo 24 dòng đạt chuẩn, GX 6/6 PASS và is_fresh = True` → `ChromaDB index papers-repaired: Hit Rate 1.0 và Token F1 1.0, dữ liệu trùng khớp baseline`.
 
 ---
 
