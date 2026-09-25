@@ -95,6 +95,14 @@ python script/run_corruption_flow.py
 
 Không có API key vẫn chạy được với `LLM_PROVIDER=mock`; khi đó judge dùng heuristic dựa trên Token F1.
 
+Kiểm thử tự động và dashboard (xem mục 13):
+
+```bash
+python -m pip install -e ".[dev]"
+python script/run_tests.py          # hoặc: python -m pytest
+python script/build_dashboard.py    # -> data/reports/dashboard.html
+```
+
 ### Kết quả tái hiện
 
 | Lệnh | Trạng thái | Thời điểm chạy gần nhất | Bằng chứng |
@@ -277,7 +285,17 @@ Kết luận có quan hệ nhân quả:
 | Freshness phụ thuộc ngày chạy | Snapshot sẽ tự bị đánh là stale sau khoảng 5 tuần | Cho phép cố định `run_date` qua biến môi trường khi cần tái lập kết quả lịch sử |
 | Ragas chưa chạy | Thiếu faithfulness / context precision | Chạy với `RUN_RAGAS=1` |
 
-## 13. Checklist trước khi nộp
+## 13. Phần vượt chuẩn (bonus)
+
+| Hạng mục | Đã làm | Bằng chứng |
+| --- | --- | --- |
+| **B1 – Observability dashboard** | Trang HTML tĩnh (không cần server, không thêm thư viện) sinh trực tiếp từ artifact: thẻ trạng thái GX/Freshness của 3 phiên bản dữ liệu, biểu đồ so sánh metric, histogram phân bố `age_days` có vạch SLA 180 ngày cho từng trạng thái, bảng expectation, corruption log, lưới kết quả từng câu hỏi (đánh dấu ca judge chấm đúng câu trả lời rỗng). Hỗ trợ light/dark mode và màn hình hẹp. Được tự sinh lại ở cuối `run_corruption_flow.py`. | `src/observability/dashboard.py`, `script/build_dashboard.py`, `data/reports/dashboard.html` |
+| **B2 – Auto-repair** | Khi Quality Gate FAIL hoặc Freshness stale, `corruption_flow` tự kích hoạt repair từ raw snapshot, bắt buộc gate PASS trước khi index lại, rồi tự xác minh dữ liệu repaired trùng khớp baseline. Không cần can thiệp thủ công. | Console `Gate failed -> auto-repair from raw snapshot`, `identical to baseline=True`; test `test_end_to_end_baseline_corruption_and_repair` |
+| **B3 – Test suite + CI** | 54 test pytest phủ ingestion (parse, retry, fallback, mock HTTP), cleaning, corruption, GX (pass trên dữ liệu sạch, fail trên dữ liệu bẩn), freshness, test set, reporting, index/QA/LLM router/agent tools, và end-to-end hai pipeline với `LLM_PROVIDER=mock` (kể cả chạy repair 2 lần để kiểm tra idempotent). Test chạy trên bản sao tạm nên không ghi đè artifact đã nộp. **Coverage 98.6%** (ngưỡng tối thiểu 80% trong `pyproject.toml`). One-click: `python script/run_tests.py`; CI: GitHub Actions chạy trên mỗi push/PR. | `tests/`, `pyproject.toml` (`[tool.pytest.ini_options]`), `.github/workflows/tests.yml` |
+
+Trong lúc viết test, nhóm phát hiện và sửa một lỗi biên trong `quality.py`: `_stale_mask` bị crash khi DataFrame thiếu cả `age_days` lẫn `published`. Pipeline chính không đi vào nhánh này nên metrics đã nộp không thay đổi.
+
+## 14. Checklist trước khi nộp
 
 - [x] Thông tin nhóm và repository chính xác.
 - [x] Phân công khớp với module, artifact và kết quả thực tế.

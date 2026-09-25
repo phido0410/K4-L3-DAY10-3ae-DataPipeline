@@ -50,7 +50,8 @@ def _stale_mask(df: pd.DataFrame, settings: Settings) -> pd.Series:
     if "age_days" in df.columns:
         age_days = pd.to_numeric(df["age_days"], errors="coerce")
     else:
-        published = pd.to_datetime(df.get("published"), errors="coerce", utc=True)
+        raw_published = df["published"] if "published" in df.columns else pd.Series(pd.NaT, index=df.index)
+        published = pd.to_datetime(raw_published, errors="coerce", utc=True)
         age_days = (pd.Timestamp(now_utc()) - published).dt.days
     return age_days > settings.freshness_threshold_days
 

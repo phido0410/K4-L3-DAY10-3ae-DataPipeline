@@ -134,6 +134,7 @@ Luôn dùng `settings.paths.*` trong `src/core/config.py`, không tự đặt đ
   - `src/pipelines/corruption_flow.py`: corrupt → quality/freshness → index `papers-corrupted` để đo silent failure → gate FAIL thì auto-repair từ `data/raw/crossref_records.json` → gate PASS → `papers-repaired` → evaluate → `corruption_report.md`, có kiểm tra repaired trùng khớp baseline.
   - Review và merge nhánh của Bảo và Quốc; chạy kiểm chứng CP0–CP2 và tích hợp trước mỗi lần merge; chạy end-to-end trên `main` (exit code 0) với `gpt-4o-mini`.
   - Báo cáo nhóm `report/group_report.md` và báo cáo cá nhân `report/2A202602531_DoNgocPhi.md`.
+  - Bonus: dashboard HTML (`src/observability/dashboard.py`), bộ 54 test pytest với coverage 98.6% (`tests/`) và GitHub Actions CI (`.github/workflows/tests.yml`).
 - **Điều học được / Đóng góp chính:**
   - Repair đúng nghĩa là build lại từ raw bất biến bằng chính code baseline. Cách này idempotent và kiểm chứng được (metrics repaired = baseline: Hit Rate 1.0, Token F1 1.0).
   - Mỗi lớp observability bắt một nhóm lỗi khác nhau: GX bắt duplicate và summary rỗng, Freshness bắt stale date, còn noise và truncate title lọt qua cả hai.

@@ -1,0 +1,196 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Data Observability Dashboard</title>
+<style>
+:root { color-scheme: light;
+  --page:#f9f9f7; --surface:#fcfcfb; --ink:#0b0b0b; --ink-2:#52514e; --muted:#898781;
+  --grid:#e1e0d9; --axis:#c3c2b7; --border:rgba(11,11,11,.10);
+  --s-baseline:#2a78d6; --s-corrupted:#eb6834; --s-repaired:#1baf7a;
+  --good:#0ca30c; --good-ink:#006300; --bad:#d03b3b; --good-bg:rgba(12,163,12,.10); --bad-bg:rgba(208,59,59,.10);
+  --stale-zone:rgba(208,59,59,.07); }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { color-scheme: dark;
+  --page:#0d0d0d; --surface:#1a1a19; --ink:#ffffff; --ink-2:#c3c2b7; --muted:#898781;
+  --grid:#2c2c2a; --axis:#383835; --border:rgba(255,255,255,.10);
+  --s-baseline:#3987e5; --s-corrupted:#d95926; --s-repaired:#199e70;
+  --good-ink:#0ca30c; --good-bg:rgba(12,163,12,.16); --bad-bg:rgba(208,59,59,.18); --stale-zone:rgba(208,59,59,.12); } }
+:root[data-theme="dark"] { color-scheme: dark;
+  --page:#0d0d0d; --surface:#1a1a19; --ink:#ffffff; --ink-2:#c3c2b7; --muted:#898781;
+  --grid:#2c2c2a; --axis:#383835; --border:rgba(255,255,255,.10);
+  --s-baseline:#3987e5; --s-corrupted:#d95926; --s-repaired:#199e70;
+  --good-ink:#0ca30c; --good-bg:rgba(12,163,12,.16); --bad-bg:rgba(208,59,59,.18); --stale-zone:rgba(208,59,59,.12); }
+* { box-sizing:border-box; }
+body { margin:0; background:var(--page); color:var(--ink); font:14px/1.5 system-ui,-apple-system,"Segoe UI",sans-serif; }
+main { max-width:1080px; margin:0 auto; padding:24px 16px 48px; }
+h1 { font-size:22px; margin:0 0 4px; } h2 { font-size:16px; margin:32px 0 12px; } h3 { font-size:14px; margin:0 0 8px; }
+.muted { color:var(--muted); } code { font-size:12px; }
+.card { background:var(--surface); border:1px solid var(--border); border-radius:10px; padding:14px 16px; margin:0; }
+.tiles, .multiples { display:grid; gap:12px; grid-template-columns:repeat(auto-fit,minmax(240px,1fr)); }
+.hero { font-size:30px; font-weight:600; } .hero small { font-size:12px; font-weight:400; color:var(--ink-2); margin-left:6px; }
+dl { display:grid; grid-template-columns:auto 1fr; gap:4px 12px; margin:8px 0 0; } dt { color:var(--ink-2); } dd { margin:0; }
+.swatch { display:inline-block; width:10px; height:10px; border-radius:2px; margin-right:6px; vertical-align:baseline; }
+.s-baseline { background:var(--s-baseline); } .s-corrupted { background:var(--s-corrupted); } .s-repaired { background:var(--s-repaired); }
+.bg-baseline { background:var(--s-baseline); } .bg-corrupted { background:var(--s-corrupted); } .bg-repaired { background:var(--s-repaired); }
+.bars { display:grid; gap:14px; }
+.metric { display:grid; grid-template-columns:minmax(110px,160px) 1fr; gap:4px 12px; align-items:center; }
+.metric-name { color:var(--ink-2); font-size:13px; }
+.bar-row { display:flex; align-items:center; gap:8px; margin:2px 0; }
+.track { flex:1; height:10px; background:repeating-linear-gradient(to right, var(--grid) 0 1px, transparent 1px 25%); }
+.bar { height:10px; border-radius:0 4px 4px 0; } .bar-row:hover .bar { opacity:.8; }
+.value { width:36px; font-size:12px; font-variant-numeric:tabular-nums; }
+.ticks { display:flex; justify-content:space-between; color:var(--muted); font-size:11px; margin-right:44px; }
+.fill-baseline { fill:var(--s-baseline); } .fill-corrupted { fill:var(--s-corrupted); } .fill-repaired { fill:var(--s-repaired); }
+.badge { font-weight:600; white-space:nowrap; } .badge-good { color:var(--good-ink); } .badge-bad { color:var(--bad); } .badge-none { color:var(--muted); }
+.legend { display:flex; gap:16px; flex-wrap:wrap; color:var(--ink-2); margin-bottom:8px; }
+.chart svg, figure svg { width:100%; height:auto; display:block; overflow:visible; }
+svg text { font-family:inherit; } .axis-label { fill:var(--ink-2); font-size:12px; } .value { fill:var(--ink); font-size:11px; }
+.tick { fill:var(--muted); font-size:10px; } .grid { stroke:var(--grid); stroke-width:1; } .baseline { stroke:var(--axis); stroke-width:1; }
+.threshold { stroke:var(--bad); stroke-width:1.5; stroke-dasharray:4 3; } .stale-zone { fill:var(--stale-zone); }
+.mark:hover rect { opacity:.8; }
+figcaption { font-weight:600; margin-bottom:6px; }
+.table-wrap { overflow-x:auto; }
+table { border-collapse:collapse; width:100%; background:var(--surface); border:1px solid var(--border); border-radius:10px; overflow:hidden; }
+th, td { text-align:left; padding:7px 10px; border-bottom:1px solid var(--grid); vertical-align:top; font-variant-numeric:tabular-nums; }
+th { color:var(--ink-2); font-weight:600; font-size:12px; } td.num { text-align:right; }
+.cell-good { background:var(--good-bg); } .cell-bad { background:var(--bad-bg); }
+.flag { color:var(--bad); font-size:11px; font-weight:600; white-space:nowrap; }
+details { margin-top:8px; } summary { cursor:pointer; color:var(--ink-2); }
+</style>
+</head>
+<body>
+<main>
+  <h1>Data Observability Dashboard</h1>
+  <p class="muted">Nhóm 3ae · Crossref RAG pipeline · great_expectations 1.23.1 · sinh lúc 2026-09-25T09:29:17+00:00 từ artifact trong <code>data/</code></p>
+
+  <h2>1. Trạng thái 3 phiên bản dữ liệu</h2>
+  <div class="tiles">
+      <article class="card tile">
+        <h3><span class="swatch s-baseline"></span>Baseline</h3>
+        <div class="hero">100.0%<small>Token F1</small></div>
+        <dl>
+          <dt>Hit Rate</dt><dd>100.0%</dd>
+          <dt>Quality Gate</dt><dd><span class="badge badge-good">✓ PASS</span>
+            <span class="muted">6/6</span></dd>
+          <dt>Freshness</dt><dd><span class="badge badge-good">✓ Fresh</span>
+            <span class="muted">4.2% stale</span></dd>
+          <dt>Số dòng</dt><dd>24</dd>
+        </dl>
+      </article>
+      <article class="card tile">
+        <h3><span class="swatch s-corrupted"></span>Corrupted</h3>
+        <div class="hero">58.2%<small>Token F1</small></div>
+        <dl>
+          <dt>Hit Rate</dt><dd>90.0%</dd>
+          <dt>Quality Gate</dt><dd><span class="badge badge-bad">✕ FAIL</span>
+            <span class="muted">4/6</span></dd>
+          <dt>Freshness</dt><dd><span class="badge badge-bad">✕ Stale</span>
+            <span class="muted">36.4% stale</span></dd>
+          <dt>Số dòng</dt><dd>22</dd>
+        </dl>
+      </article>
+      <article class="card tile">
+        <h3><span class="swatch s-repaired"></span>Repaired</h3>
+        <div class="hero">100.0%<small>Token F1</small></div>
+        <dl>
+          <dt>Hit Rate</dt><dd>100.0%</dd>
+          <dt>Quality Gate</dt><dd><span class="badge badge-good">✓ PASS</span>
+            <span class="muted">6/6</span></dd>
+          <dt>Freshness</dt><dd><span class="badge badge-good">✓ Fresh</span>
+            <span class="muted">4.2% stale</span></dd>
+          <dt>Số dòng</dt><dd>24</dd>
+        </dl>
+      </article></div>
+
+  <h2>2. Chất lượng RAG: Baseline vs Corrupted vs Repaired</h2>
+  <div class="card"><div class="legend"><span><span class="swatch s-baseline"></span>Baseline</span><span><span class="swatch s-corrupted"></span>Corrupted</span><span><span class="swatch s-repaired"></span>Repaired</span></div><div class="bars" role="img" aria-label="So sánh metric 3 trạng thái"><div class="metric"><div class="metric-name">Retrieval Hit Rate</div><div><div class="bar-row" title="Baseline – Retrieval Hit Rate: 100.0%"><div class="track"><div class="bar bg-baseline" style="width:100.0%"></div></div><span class="value">100%</span></div><div class="bar-row" title="Corrupted – Retrieval Hit Rate: 90.0%"><div class="track"><div class="bar bg-corrupted" style="width:90.0%"></div></div><span class="value">90%</span></div><div class="bar-row" title="Repaired – Retrieval Hit Rate: 100.0%"><div class="track"><div class="bar bg-repaired" style="width:100.0%"></div></div><span class="value">100%</span></div></div></div><div class="metric"><div class="metric-name">Mean Token F1</div><div><div class="bar-row" title="Baseline – Mean Token F1: 100.0%"><div class="track"><div class="bar bg-baseline" style="width:100.0%"></div></div><span class="value">100%</span></div><div class="bar-row" title="Corrupted – Mean Token F1: 58.2%"><div class="track"><div class="bar bg-corrupted" style="width:58.2%"></div></div><span class="value">58%</span></div><div class="bar-row" title="Repaired – Mean Token F1: 100.0%"><div class="track"><div class="bar bg-repaired" style="width:100.0%"></div></div><span class="value">100%</span></div></div></div><div class="metric"><div class="metric-name">LLM Judge Accuracy</div><div><div class="bar-row" title="Baseline – LLM Judge Accuracy: 100.0%"><div class="track"><div class="bar bg-baseline" style="width:100.0%"></div></div><span class="value">100%</span></div><div class="bar-row" title="Corrupted – LLM Judge Accuracy: 70.0%"><div class="track"><div class="bar bg-corrupted" style="width:70.0%"></div></div><span class="value">70%</span></div><div class="bar-row" title="Repaired – LLM Judge Accuracy: 100.0%"><div class="track"><div class="bar bg-repaired" style="width:100.0%"></div></div><span class="value">100%</span></div></div></div><div class="metric"><div></div><div class="ticks"><span>0%</span><span>25%</span><span>50%</span><span>75%</span><span>100%</span></div></div></div><details><summary>Xem dạng bảng</summary><div class="table-wrap"><table><thead><tr><th>Metric</th><th>Baseline</th><th>Corrupted</th><th>Repaired</th></tr></thead><tbody><tr><td>Retrieval Hit Rate</td><td>100.0%</td><td>90.0%</td><td>100.0%</td></tr><tr><td>Mean Token F1</td><td>100.0%</td><td>58.2%</td><td>100.0%</td></tr><tr><td>LLM Judge Accuracy</td><td>100.0%</td><td>70.0%</td><td>100.0%</td></tr><tr><td>Mean Judge Score (1–5)</td><td>5</td><td>3.8</td><td>5</td></tr></tbody></table></div></details></div>
+
+  <h2>3. Freshness SLA: phân bố tuổi bài báo (age_days)</h2>
+  <p class="muted">Vùng tô đỏ là bài quá 180 ngày; dữ liệu stale khi tỷ lệ này vượt 25%.</p>
+  <div class="multiples">
+      <figure class="card">
+        <figcaption><span class="swatch s-baseline"></span>Baseline
+          <span class="muted">· 1/24 bài quá hạn (4.2%)</span></figcaption>
+        <svg viewBox="0 0 300 150" role="img" aria-label="Phân bố age_days – Baseline">
+          <rect class="stale-zone" x="111.4" y="14" width="180.6" height="114"/>
+          <line class="baseline" x1="28" x2="292" y1="128" y2="128"/>
+          <g class="mark"><title>60–89 ngày: 3 bài</title><rect class="fill-baseline" x="56.8" y="105.2" width="11.9" height="22.8" rx="2"/></g><g class="mark"><title>90–119 ngày: 15 bài</title><rect class="fill-baseline" x="70.7" y="14.0" width="11.9" height="114.0" rx="2"/></g><g class="mark"><title>120–149 ngày: 4 bài</title><rect class="fill-baseline" x="84.6" y="97.6" width="11.9" height="30.4" rx="2"/></g><g class="mark"><title>150–179 ngày: 1 bài</title><rect class="fill-baseline" x="98.5" y="120.4" width="11.9" height="7.6" rx="2"/></g><g class="mark"><title>180–209 ngày: 1 bài</title><rect class="fill-baseline" x="112.4" y="120.4" width="11.9" height="7.6" rx="2"/></g>
+          <line class="threshold" x1="111.4" x2="111.4" y1="8" y2="128"/>
+          <text class="tick" x="115.4" y="12">SLA 180 ngày</text>
+          <text class="tick" x="28" y="144">0</text>
+          <text class="tick" x="292" y="144" text-anchor="end">570 ngày</text>
+          <text class="tick" x="22" y="18" text-anchor="end">15</text>
+        </svg>
+      </figure>
+      <figure class="card">
+        <figcaption><span class="swatch s-corrupted"></span>Corrupted
+          <span class="muted">· 8/22 bài quá hạn (36.4%)</span></figcaption>
+        <svg viewBox="0 0 300 150" role="img" aria-label="Phân bố age_days – Corrupted">
+          <rect class="stale-zone" x="111.4" y="14" width="180.6" height="114"/>
+          <line class="baseline" x1="28" x2="292" y1="128" y2="128"/>
+          <g class="mark"><title>90–119 ngày: 9 bài</title><rect class="fill-corrupted" x="70.7" y="14.0" width="11.9" height="114.0" rx="2"/></g><g class="mark"><title>120–149 ngày: 3 bài</title><rect class="fill-corrupted" x="84.6" y="90.0" width="11.9" height="38.0" rx="2"/></g><g class="mark"><title>150–179 ngày: 2 bài</title><rect class="fill-corrupted" x="98.5" y="102.7" width="11.9" height="25.3" rx="2"/></g><g class="mark"><title>450–479 ngày: 5 bài</title><rect class="fill-corrupted" x="237.4" y="64.7" width="11.9" height="63.3" rx="2"/></g><g class="mark"><title>480–509 ngày: 1 bài</title><rect class="fill-corrupted" x="251.3" y="115.3" width="11.9" height="12.7" rx="2"/></g><g class="mark"><title>510–539 ngày: 1 bài</title><rect class="fill-corrupted" x="265.2" y="115.3" width="11.9" height="12.7" rx="2"/></g><g class="mark"><title>540–569 ngày: 1 bài</title><rect class="fill-corrupted" x="279.1" y="115.3" width="11.9" height="12.7" rx="2"/></g>
+          <line class="threshold" x1="111.4" x2="111.4" y1="8" y2="128"/>
+          <text class="tick" x="115.4" y="12">SLA 180 ngày</text>
+          <text class="tick" x="28" y="144">0</text>
+          <text class="tick" x="292" y="144" text-anchor="end">570 ngày</text>
+          <text class="tick" x="22" y="18" text-anchor="end">9</text>
+        </svg>
+      </figure>
+      <figure class="card">
+        <figcaption><span class="swatch s-repaired"></span>Repaired
+          <span class="muted">· 1/24 bài quá hạn (4.2%)</span></figcaption>
+        <svg viewBox="0 0 300 150" role="img" aria-label="Phân bố age_days – Repaired">
+          <rect class="stale-zone" x="111.4" y="14" width="180.6" height="114"/>
+          <line class="baseline" x1="28" x2="292" y1="128" y2="128"/>
+          <g class="mark"><title>60–89 ngày: 3 bài</title><rect class="fill-repaired" x="56.8" y="105.2" width="11.9" height="22.8" rx="2"/></g><g class="mark"><title>90–119 ngày: 15 bài</title><rect class="fill-repaired" x="70.7" y="14.0" width="11.9" height="114.0" rx="2"/></g><g class="mark"><title>120–149 ngày: 4 bài</title><rect class="fill-repaired" x="84.6" y="97.6" width="11.9" height="30.4" rx="2"/></g><g class="mark"><title>150–179 ngày: 1 bài</title><rect class="fill-repaired" x="98.5" y="120.4" width="11.9" height="7.6" rx="2"/></g><g class="mark"><title>180–209 ngày: 1 bài</title><rect class="fill-repaired" x="112.4" y="120.4" width="11.9" height="7.6" rx="2"/></g>
+          <line class="threshold" x1="111.4" x2="111.4" y1="8" y2="128"/>
+          <text class="tick" x="115.4" y="12">SLA 180 ngày</text>
+          <text class="tick" x="28" y="144">0</text>
+          <text class="tick" x="292" y="144" text-anchor="end">570 ngày</text>
+          <text class="tick" x="22" y="18" text-anchor="end">15</text>
+        </svg>
+      </figure></div>
+
+  <h2>4. Quality Gate (Great Expectations 1.x)</h2>
+  <div class="table-wrap"><table><thead><tr><th>Expectation</th><th>Baseline</th><th>Corrupted</th><th>Repaired</th></tr></thead><tbody><tr><td><code>expect_table_row_count_to_be_between</code></td><td><span class="badge badge-good">✓ PASS</span> <span class='muted'>24</span></td><td><span class="badge badge-good">✓ PASS</span> <span class='muted'>22</span></td><td><span class="badge badge-good">✓ PASS</span> <span class='muted'>24</span></td></tr><tr><td><code>expect_column_values_to_not_be_null(paper_id)</code></td><td><span class="badge badge-good">✓ PASS</span> <span class='muted'>0</span></td><td><span class="badge badge-good">✓ PASS</span> <span class='muted'>0</span></td><td><span class="badge badge-good">✓ PASS</span> <span class='muted'>0</span></td></tr><tr><td><code>expect_column_values_to_be_unique(paper_id)</code></td><td><span class="badge badge-good">✓ PASS</span> <span class='muted'>0</span></td><td><span class="badge badge-bad">✕ FAIL</span> <span class='muted'>6</span></td><td><span class="badge badge-good">✓ PASS</span> <span class='muted'>0</span></td></tr><tr><td><code>expect_column_values_to_not_be_null(title)</code></td><td><span class="badge badge-good">✓ PASS</span> <span class='muted'>0</span></td><td><span class="badge badge-good">✓ PASS</span> <span class='muted'>0</span></td><td><span class="badge badge-good">✓ PASS</span> <span class='muted'>0</span></td></tr><tr><td><code>expect_column_values_to_not_be_null(text_for_embedding)</code></td><td><span class="badge badge-good">✓ PASS</span> <span class='muted'>0</span></td><td><span class="badge badge-good">✓ PASS</span> <span class='muted'>0</span></td><td><span class="badge badge-good">✓ PASS</span> <span class='muted'>0</span></td></tr><tr><td><code>expect_column_value_lengths_to_be_between(summary)</code></td><td><span class="badge badge-good">✓ PASS</span> <span class='muted'>0</span></td><td><span class="badge badge-bad">✕ FAIL</span> <span class='muted'>3</span></td><td><span class="badge badge-good">✓ PASS</span> <span class='muted'>0</span></td></tr></tbody></table></div>
+
+  <h2>5. Corruption log</h2>
+  <div class="table-wrap"><p class='muted'>24 → 22 dòng · seed 42</p><table><thead><tr><th>Loại lỗi</th><th>Số dòng</th><th>Mô tả</th></tr></thead><tbody><tr><td><code>drop_latest_records</code></td><td class='num'>5</td><td>Dropped the 5 most recently published papers (20%).</td></tr><tr><td><code>blank_summary</code></td><td class='num'>3</td><td>Replaced summary with an empty string.</td></tr><tr><td><code>inject_noise</code></td><td class='num'>3</td><td>Inserted garbage tokens after ~50% of the words in the summary.</td></tr><tr><td><code>truncate_title</code></td><td class='num'>3</td><td>Truncated title to 6 characters.</td></tr><tr><td><code>stale_date</code></td><td class='num'>8</td><td>Shifted published date back 365 days on 40% of remaining rows.</td></tr><tr><td><code>duplicate_rows</code></td><td class='num'>3</td><td>Appended exact copies of existing rows (paper_id no longer unique).</td></tr></tbody></table></div>
+
+  <h2>6. Kết quả từng câu hỏi</h2>
+  <p class="muted">✓ = judge chấm đúng và Token F1 &gt; 0 · J = điểm judge (1–5) · rê chuột để xem câu trả lời.</p>
+  <div class="table-wrap"><table class='grid-table'><thead><tr><th>Câu</th><th>Loại</th><th>Baseline</th><th>Corrupted</th><th>Repaired</th></tr></thead><tbody><tr><td><code>eval_001</code></td><td>summary</td><td class="cell-good" title="Trả lời: Retrieval-Augmented Generation (RAG) significantly improves large language model accuracy by grounding responses in retrieved passages.
+Đáp án: Retrieval-Augmented Generation (RAG) significantly improves large language model accuracy by grounding responses in retrieved passages.">✓ F1 1.00 · J 5</td><td class="cell-bad" title="Trả lời: (rỗng)
+Đáp án: Retrieval-Augmented Generation (RAG) significantly improves large language model accuracy by grounding responses in retrieved passages.">✕ F1 0.00 · J 4 <span class="flag" title="Judge chấm đúng nhưng câu trả lời rỗng">⚠ judge sai</span></td><td class="cell-good" title="Trả lời: Retrieval-Augmented Generation (RAG) significantly improves large language model accuracy by grounding responses in retrieved passages.
+Đáp án: Retrieval-Augmented Generation (RAG) significantly improves large language model accuracy by grounding responses in retrieved passages.">✓ F1 1.00 · J 5</td></tr><tr><td><code>eval_002</code></td><td>authors</td><td class="cell-good" title="Trả lời: Duc Vu, Thao Dang
+Đáp án: Duc Vu, Thao Dang">✓ F1 1.00 · J 5</td><td class="cell-good" title="Trả lời: Duc Vu, Thao Dang
+Đáp án: Duc Vu, Thao Dang">✓ F1 1.00 · J 5</td><td class="cell-good" title="Trả lời: Duc Vu, Thao Dang
+Đáp án: Duc Vu, Thao Dang">✓ F1 1.00 · J 5</td></tr><tr><td><code>eval_003</code></td><td>date</td><td class="cell-good" title="Trả lời: 2026-03-28
+Đáp án: 2026-03-28">✓ F1 1.00 · J 5</td><td class="cell-bad" title="Trả lời: 2025-03-28
+Đáp án: 2026-03-28">✕ F1 0.00 · J 2</td><td class="cell-good" title="Trả lời: 2026-03-28
+Đáp án: 2026-03-28">✓ F1 1.00 · J 5</td></tr><tr><td><code>eval_004</code></td><td>categories</td><td class="cell-good" title="Trả lời: Multi-Agent Systems, Artificial Intelligence
+Đáp án: Multi-Agent Systems, Artificial Intelligence">✓ F1 1.00 · J 5</td><td class="cell-good" title="Trả lời: Multi-Agent Systems, Artificial Intelligence
+Đáp án: Multi-Agent Systems, Artificial Intelligence">✓ F1 1.00 · J 5 <span class="muted">(miss)</span></td><td class="cell-good" title="Trả lời: Multi-Agent Systems, Artificial Intelligence
+Đáp án: Multi-Agent Systems, Artificial Intelligence">✓ F1 1.00 · J 5</td></tr><tr><td><code>eval_005</code></td><td>summary</td><td class="cell-good" title="Trả lời: Embedding quality checks directly into data pipelines enables fail-closed governance.
+Đáp án: Embedding quality checks directly into data pipelines enables fail-closed governance.">✓ F1 1.00 · J 5</td><td class="cell-bad" title="Trả lời: (rỗng)
+Đáp án: Embedding quality checks directly into data pipelines enables fail-closed governance.">✕ F1 0.00 · J 4 <span class="flag" title="Judge chấm đúng nhưng câu trả lời rỗng">⚠ judge sai</span></td><td class="cell-good" title="Trả lời: Embedding quality checks directly into data pipelines enables fail-closed governance.
+Đáp án: Embedding quality checks directly into data pipelines enables fail-closed governance.">✓ F1 1.00 · J 5</td></tr><tr><td><code>eval_006</code></td><td>authors</td><td class="cell-good" title="Trả lời: Minh Nguyen, Hoang Le
+Đáp án: Minh Nguyen, Hoang Le">✓ F1 1.00 · J 5</td><td class="cell-good" title="Trả lời: Minh Nguyen, Hoang Le
+Đáp án: Minh Nguyen, Hoang Le">✓ F1 1.00 · J 5</td><td class="cell-good" title="Trả lời: Minh Nguyen, Hoang Le
+Đáp án: Minh Nguyen, Hoang Le">✓ F1 1.00 · J 5</td></tr><tr><td><code>eval_007</code></td><td>date</td><td class="cell-good" title="Trả lời: 2026-06-03
+Đáp án: 2026-06-03">✓ F1 1.00 · J 5</td><td class="cell-bad" title="Trả lời: 2025-06-03
+Đáp án: 2026-06-03">✕ F1 0.00 · J 2</td><td class="cell-good" title="Trả lời: 2026-06-03
+Đáp án: 2026-06-03">✓ F1 1.00 · J 5</td></tr><tr><td><code>eval_008</code></td><td>categories</td><td class="cell-good" title="Trả lời: Natural Language Processing, Evaluation Methodology
+Đáp án: Natural Language Processing, Evaluation Methodology">✓ F1 1.00 · J 5</td><td class="cell-good" title="Trả lời: Natural Language Processing, Evaluation Methodology
+Đáp án: Natural Language Processing, Evaluation Methodology">✓ F1 1.00 · J 5</td><td class="cell-good" title="Trả lời: Natural Language Processing, Evaluation Methodology
+Đáp án: Natural Language Processing, Evaluation Methodology">✓ F1 1.00 · J 5</td></tr><tr><td><code>eval_009</code></td><td>summary</td><td class="cell-good" title="Trả lời: An extended empirical study on single LLM is susceptible to confirmation bias when evaluating retrieved evidence.
+Đáp án: An extended empirical study on single LLM is susceptible to confirmation bias when evaluating retrieved evidence.">✓ F1 1.00 · J 5</td><td class="cell-bad" title="Trả lời: An extended %%% empirical NaN study on single LLM @@## is susceptible lorem to zzkq confirmation %%% bias %%% when �� evaluating &lt;&lt;&lt;&gt;&gt;&gt; retrieved evidence.
+Đáp án: An extended empirical study on single LLM is susceptible to confirmation bias when evaluating retrieved evidence.">✕ F1 0.82 · J 1</td><td class="cell-good" title="Trả lời: An extended empirical study on single LLM is susceptible to confirmation bias when evaluating retrieved evidence.
+Đáp án: An extended empirical study on single LLM is susceptible to confirmation bias when evaluating retrieved evidence.">✓ F1 1.00 · J 5</td></tr><tr><td><code>eval_010</code></td><td>authors</td><td class="cell-good" title="Trả lời: Son Nguyen, Thuy Doan
+Đáp án: Son Nguyen, Thuy Doan">✓ F1 1.00 · J 5</td><td class="cell-good" title="Trả lời: Son Nguyen, Thuy Doan
+Đáp án: Son Nguyen, Thuy Doan">✓ F1 1.00 · J 5</td><td class="cell-good" title="Trả lời: Son Nguyen, Thuy Doan
+Đáp án: Son Nguyen, Thuy Doan">✓ F1 1.00 · J 5</td></tr></tbody></table></div>
+</main>
+</body>
+</html>
