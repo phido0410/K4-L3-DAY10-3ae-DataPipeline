@@ -158,6 +158,15 @@ Luôn dùng `settings.paths.*` trong `src/core/config.py`, không tự đặt đ
 - **Vai trò:** Observability & Evaluation.
 - **Phạm vi được giao:** `src/observability/quality.py`, `src/evaluation/testset.py`, `src/observability/reporting.py`.
 - **Công việc chi tiết đã hoàn thành:**
-  - _[Tự điền]_
+  - `src/observability/quality.py`:
+    - `run_data_quality_checks`: Quality Gate chuẩn GX 1.x (`gx.get_context(mode="ephemeral")` → `data_sources.add_pandas` → `add_dataframe_asset` → `add_batch_definition_whole_dataframe` → `ExpectationSuite` + `batch.validate`). 4 nhóm expectation: row count 5–5000; not-null `paper_id`/`title`/`text_for_embedding`; unique `paper_id`; `summary` dài ≥ 30. Trả dict có `success`, `failed_expectations`, chi tiết từng expectation và `freshness_sla` (tham khảo); ghi `data/quality/<report_name>_quality_report.json`.
+    - `build_freshness_report`: `latest_published`, `oldest_published`, `stale_rows` (`age_days > 180`), `total_rows`, `stale_ratio`, `is_fresh` (stale ≤ 25%); ghi JSON vào `report_path`.
+  - `src/evaluation/testset.py` — `build_test_set`: 10 câu tất định (3 summary / 3 authors / 2 date / 2 categories), title trong nháy đơn, keyword khớp `retrieval/qa.py`, ground truth đúng trường QA trả về. Ghi `data/eval/test_set.json`.
+  - `src/observability/reporting.py`: `generate_phase1_report` (source, metrics, GX, freshness) và `generate_corruption_report` (bảng 3 cột Baseline / Corrupted / Repaired + Δ, quality, freshness, phân tích sinh tự động từ số liệu).
+  - Đã nghiệm thu: `Quality check status = True` (6/6 expectation), `Sinh được 10 câu hỏi test`; smoke test `LLM_PROVIDER=mock` toàn luồng: baseline Hit Rate 100%, corruption giả lập làm GX FAIL (unique `paper_id`, độ dài `summary`) và `is_fresh = False`.
+  - Báo cáo cá nhân: `report/2A202602469_PhamCuongQuoc.md`.
+- **Lưu ý cho tích hợp (Phi):** gọi `run_data_quality_checks(df, settings, "baseline" | "corrupted" | "repaired")` — tên `baseline`/`corrupted` khớp `settings.paths.*_quality_report`; `corruption.py` cần tính lại `age_days` sau khi lùi `published` để freshness phát hiện được.
 - **Điều học được / Đóng góp chính:**
-  - _[Tự điền]_
+  - GX (cấu trúc/toàn vẹn) và Freshness SLA (thời gian) bắt các loại lỗi khác nhau — lùi ngày không làm GX fail nhưng làm SLA fail.
+  - Bộ đánh giá phải khớp contract của hệ thống được đo để suy giảm metrics quy được về chất lượng dữ liệu.
+  - Báo cáo sinh trực tiếp từ artifact để số liệu luôn khớp lần chạy thực tế.
