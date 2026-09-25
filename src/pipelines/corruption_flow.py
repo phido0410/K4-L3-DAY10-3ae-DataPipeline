@@ -10,6 +10,7 @@ from evaluation.metrics import evaluate_pipeline
 from ingestion.cleaning import build_clean_dataframe
 from ingestion.corruption import corrupt_clean_dataframe
 from ingestion.crossref import load_raw_records
+from observability.dashboard import build_dashboard
 from observability.quality import build_freshness_report, run_data_quality_checks
 from observability.reporting import generate_corruption_report
 from pipelines.phase1 import METRIC_KEYS, enforce_quality_gate, load_clean_json, save_clean_artifacts
@@ -98,5 +99,6 @@ def main() -> None:
         corrupted_freshness,
         repaired_freshness,
     )
-    print(f"[5/5] Comparison report -> {paths.comparison_report}\n")
+    print(f"[5/5] Comparison report -> {paths.comparison_report}")
+    print(f"      Dashboard -> {build_dashboard(settings)}\n")
     _print_comparison(baseline_metrics, corrupted_bundle.summary, repaired_bundle.summary)
