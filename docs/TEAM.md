@@ -171,7 +171,8 @@ Luôn dùng `settings.paths.*` trong `src/core/config.py`, không tự đặt đ
     - `build_freshness_report`: `latest_published`, `oldest_published`, `stale_rows` (`age_days > 180`), `total_rows`, `stale_ratio`, `is_fresh` (stale ≤ 25%); ghi JSON vào `report_path`.
   - `src/evaluation/testset.py` — `build_test_set`: 10 câu tất định (3 summary / 3 authors / 2 date / 2 categories), title trong nháy đơn, keyword khớp `retrieval/qa.py`, ground truth đúng trường QA trả về. Ghi `data/eval/test_set.json`.
   - `src/observability/reporting.py`: `generate_phase1_report` (source, metrics, GX, freshness) và `generate_corruption_report` (bảng 3 cột Baseline / Corrupted / Repaired + Δ, quality, freshness, phân tích sinh tự động từ số liệu).
-  - Đã nghiệm thu: `Quality check status = True` (6/6 expectation), `Sinh được 10 câu hỏi test`; smoke test `LLM_PROVIDER=mock` toàn luồng: baseline Hit Rate 100%, corruption giả lập làm GX FAIL (unique `paper_id`, độ dài `summary`) và `is_fresh = False`.
+  - Đã nghiệm thu: `Quality check status = True` (6/6 expectation), `Sinh được 10 câu hỏi test`; lần chạy chính thức: GX baseline/repaired PASS 6/6, corrupted FAIL 4/6 (unique `paper_id`, độ dài `summary`); freshness corrupted 8/22 stale (36.36%) → `is_fresh = False`; report 3 trạng thái: Token F1 1.00 → 0.58 → 1.00.
+  - Phân tích trong báo cáo cá nhân: gate bắt 3/6 loại lỗi; LLM judge chấm đúng cho 2 câu trả lời rỗng.
   - Báo cáo cá nhân: `report/2A202602469_PhamCuongQuoc.md`.
 - **Lưu ý cho tích hợp (Phi):** gọi `run_data_quality_checks(df, settings, "baseline" | "corrupted" | "repaired")` — tên `baseline`/`corrupted` khớp `settings.paths.*_quality_report`; `corruption.py` cần tính lại `age_days` sau khi lùi `published` để freshness phát hiện được.
 - **Điều học được / Đóng góp chính:**

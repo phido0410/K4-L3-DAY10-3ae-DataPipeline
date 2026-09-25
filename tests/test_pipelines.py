@@ -25,7 +25,7 @@ def test_end_to_end_baseline_corruption_and_repair(run_in_project, capsys):
     baseline = read_json(paths.baseline_metrics)
     assert baseline["retrieval_hit_rate"] == 1.0 and baseline["mean_token_f1"] == 1.0
     assert read_json(paths.baseline_quality_report)["success"] is True
-    assert "Baseline Pipeline" in paths.baseline_report.read_text()
+    assert "Baseline Pipeline" in paths.baseline_report.read_text(encoding="utf-8")
 
     corruption_flow.main()
     corrupted = read_json(paths.corrupted_metrics)
@@ -41,10 +41,10 @@ def test_end_to_end_baseline_corruption_and_repair(run_in_project, capsys):
     output = capsys.readouterr().out
     assert "Gate failed -> auto-repair" in output
     assert "identical to baseline=True" in output
-    report = paths.comparison_report.read_text()
+    report = paths.comparison_report.read_text(encoding="utf-8")
     assert "Baseline | Corrupted | Repaired" in report
 
-    html = (paths.project_dir / "data" / "reports" / "dashboard.html").read_text()
+    html = (paths.project_dir / "data" / "reports" / "dashboard.html").read_text(encoding="utf-8")
     for marker in ("Data Observability Dashboard", "Corrupted", "drop_latest_records", "eval_010", "SLA 180"):
         assert marker in html
 
@@ -96,6 +96,6 @@ def test_agent_demo_paths(run_in_project, monkeypatch, capsys):
 
 def test_dashboard_without_artifacts(run_in_project, capsys):
     dashboard.main()
-    html = (run_in_project.paths.project_dir / "data" / "reports" / "dashboard.html").read_text()
+    html = (run_in_project.paths.project_dir / "data" / "reports" / "dashboard.html").read_text(encoding="utf-8")
     assert "chưa chạy" in html and "Chưa có corruption log" in html
     assert "Dashboard ->" in capsys.readouterr().out

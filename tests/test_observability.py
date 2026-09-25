@@ -168,14 +168,14 @@ def test_reports_render_expected_sections(clean_df, corrupted_df, settings):
         settings.paths.baseline_report, {"mode": "offline", "rows": 24}, _metrics(1.0, {"faithfulness": 0.9}),
         quality_ok, fresh,
     )
-    phase1 = settings.paths.baseline_report.read_text()
+    phase1 = settings.paths.baseline_report.read_text(encoding="utf-8")
     assert "Great Expectations" in phase1 and "Ragas `faithfulness`" in phase1 and "100.00%" in phase1
 
     generate_corruption_report(
         settings.paths.comparison_report, _metrics(1.0), _metrics(0.5), _metrics(1.0),
         quality_bad, quality_ok, stale, fresh,
     )
-    report = settings.paths.comparison_report.read_text()
+    report = settings.paths.comparison_report.read_text(encoding="utf-8")
     assert "| Metric | Baseline | Corrupted | Repaired |" in report
     assert "-50.0 pp" in report and "chặn được dữ liệu lỗi" in report
     assert "phục hồi về mức baseline" in report
@@ -187,15 +187,15 @@ def test_corruption_report_handles_regression_and_missing_values(settings):
         _metrics(0.5), _metrics(0.7), _metrics(0.6),
         {"success": True}, {"success": True}, {}, {},
     )
-    report = settings.paths.comparison_report.read_text()
+    report = settings.paths.comparison_report.read_text(encoding="utf-8")
     assert "tăng từ" in report and "KHÔNG phát hiện" in report and "n/a" in report
     generate_corruption_report(
         settings.paths.comparison_report,
         _metrics(0.5), _metrics(0.5), _metrics(0.5), {}, {}, {}, {},
     )
-    assert "không đổi" in settings.paths.comparison_report.read_text()
+    assert "không đổi" in settings.paths.comparison_report.read_text(encoding="utf-8")
     generate_corruption_report(
         settings.paths.comparison_report,
         _metrics(0.5), _metrics(0.4), {"samples": None}, {}, {}, {}, {},
     )
-    assert "Retrieval Hit Rate**" not in settings.paths.comparison_report.read_text()
+    assert "Retrieval Hit Rate**" not in settings.paths.comparison_report.read_text(encoding="utf-8")
