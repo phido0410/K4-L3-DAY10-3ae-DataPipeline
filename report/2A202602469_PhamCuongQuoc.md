@@ -45,7 +45,7 @@ Phần việc nhận `data/clean/papers_clean.json` từ **Nguyễn Trường B�
 | Freshness SLA | `quality.py`, `data/quality/{freshness,corrupted_freshness,repaired_freshness}_report.json` | Baseline 1/24 stale (fresh), Corrupted 8/22 = 36.36% (not fresh), Repaired 1/24 (fresh) | File JSON trong `data/quality/` |
 | Test set | `testset.py`, `data/eval/test_set.json` | 10 câu: 3 summary / 3 authors / 2 date / 2 categories | Lệnh CP2 in `Sinh được 10 câu hỏi test` |
 | Report phase 1 và report 3 trạng thái | `reporting.py`, `data/reports/phase1_report.md`, `data/reports/corruption_report.md` | Bảng metrics 3 cột + Δ, quality, freshness, phân tích sinh từ số liệu | Mở 2 file report sau `run_phase1.py` / `run_corruption_flow.py` |
-| Kiểm thử | `tests/test_observability.py` (Phi viết) | 54/54 test pass; coverage `quality.py` 98%, `reporting.py` 99% | `PYTHONUTF8=1 python -m pytest` |
+| Kiểm thử | `tests/test_observability.py` (Phi viết) | 54/54 test pass (cả trên Windows); coverage `quality.py` 98%, `reporting.py` 99% | `python -m pytest` |
 
 ---
 
@@ -107,7 +107,7 @@ python -c "from core.config import load_settings; from evaluation.testset import
 - **Nguyên nhân gốc:** console dùng code page không hỗ trợ tiếng Việt khi `print` chuỗi "Tín hiệu hoàn thành".
 - **Cách xử lý:** đặt `PYTHONIOENCODING=utf-8` trước khi chạy (PowerShell: `$env:PYTHONIOENCODING="utf-8"`).
 - **Xác minh:** lệnh in đúng `Tín hiệu hoàn thành: Quality check status = True`; file JSON output giống hệt lần chạy lỗi.
-- **Liên quan:** cùng nguyên nhân, 4 test trong `tests/` gọi `read_text()` không truyền `encoding` nên fail trên Windows (report của tôi ghi UTF-8 đúng); chạy với `PYTHONUTF8=1` thì 54/54 pass. Đã báo lại cho nhóm.
+- **Liên quan:** cùng nguyên nhân, 4 test trong `tests/` gọi `read_text()` không truyền `encoding` nên fail trên Windows (report ghi UTF-8 đúng, nhưng test đọc bằng code page mặc định cp1258). Đã sửa thành `read_text(encoding="utf-8")` trong `tests/test_observability.py` và `tests/test_pipelines.py` → 54/54 pass trên Windows không cần biến môi trường.
 - **Điều học được:** tách lỗi hiển thị khỏi lỗi logic — kiểm tra file output trước khi sửa code.
 
 ---
