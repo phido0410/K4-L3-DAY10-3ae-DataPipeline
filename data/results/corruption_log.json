@@ -1,0 +1,80 @@
+{
+  "generated_at": "2026-09-25T08:42:54.586690+00:00",
+  "seed": 42,
+  "rows_before": 24,
+  "rows_after": 22,
+  "corruptions": [
+    {
+      "type": "drop_latest_records",
+      "description": "Dropped the 5 most recently published papers (20%).",
+      "affected_rows": 5,
+      "affected_paper_ids": [
+        "10.1145/3637528.3671812",
+        "10.1145/3637528.3671808",
+        "10.1145/3637528.3671804",
+        "10.1145/3637528.3671807",
+        "10.1145/3637528.3671802"
+      ]
+    },
+    {
+      "type": "blank_summary",
+      "description": "Replaced summary with an empty string.",
+      "affected_rows": 3,
+      "affected_paper_ids": [
+        "10.1145/3637528.3671811",
+        "10.1145/3637528.3671801",
+        "10.1145/3637528.3671810"
+      ]
+    },
+    {
+      "type": "inject_noise",
+      "description": "Inserted garbage tokens after ~50% of the words in the summary.",
+      "affected_rows": 3,
+      "affected_paper_ids": [
+        "10.1145/3637528.3671816",
+        "10.1145/3637528.3671820",
+        "10.1145/3637528.3671806"
+      ]
+    },
+    {
+      "type": "truncate_title",
+      "description": "Truncated title to 6 characters.",
+      "affected_rows": 3,
+      "affected_paper_ids": [
+        "10.1145/3637528.3671803",
+        "10.1145/3637528.3671819",
+        "10.1145/3637528.3671813"
+      ],
+      "original_titles": [
+        "Mitigating Ghost Vectors in Dense Retrieval via Idempotent Indexing",
+        "Advanced Perspectives on Synthetic Corruption Testing: Stress-Testing Vector Search Robustness",
+        "Advanced Perspectives on Agentic Retrieval-Augmented Generation for Knowledge-Intensive Tasks"
+      ]
+    },
+    {
+      "type": "stale_date",
+      "description": "Shifted published date back 365 days on 40% of remaining rows.",
+      "affected_rows": 8,
+      "affected_paper_ids": [
+        "10.1145/3637528.3671809",
+        "10.1145/3637528.3671815",
+        "10.1145/3637528.3671823",
+        "10.1145/3637528.3671814",
+        "10.1145/3637528.3671822",
+        "10.1145/3637528.3671805",
+        "10.1145/3637528.3671818",
+        "10.1145/3637528.3671817"
+      ]
+    },
+    {
+      "type": "duplicate_rows",
+      "description": "Appended exact copies of existing rows (paper_id no longer unique).",
+      "affected_rows": 3,
+      "affected_paper_ids": [
+        "10.1145/3637528.3671819",
+        "10.1145/3637528.3671816",
+        "10.1145/3637528.3671803"
+      ]
+    }
+  ]
+}

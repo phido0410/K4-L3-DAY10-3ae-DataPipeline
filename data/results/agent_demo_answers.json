@@ -1,0 +1,10 @@
+[
+  {
+    "question": "What is the main finding of the paper 'Agentic Retrieval-Augmented Generation for Knowledge-Intensive Tasks'?",
+    "answer": "The main finding of the paper \"Agentic Retrieval-Augmented Generation for Knowledge-Intensive Tasks\" is that Retrieval-Augmented Generation (RAG) significantly improves the accuracy of large language models by grounding their responses in retrieved passages. The authors explore agentic multi-hop reasoning and routing across heterogeneous vector indices, enhancing the model's ability to handle knowledge-intensive tasks."
+  },
+  {
+    "question": "Who authored the paper 'Mitigating Ghost Vectors in Dense Retrieval via Idempotent Indexing'?",
+    "answer": "The paper \"Mitigating Ghost Vectors in Dense Retrieval via Idempotent Indexing\" was authored by Duc Vu and Thao Dang."
+  }
+]
