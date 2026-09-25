@@ -136,9 +136,23 @@ Luôn dùng `settings.paths.*` trong `src/core/config.py`, không tự đặt đ
 - **Vai trò:** Data Ingestion & Cleaning.
 - **Phạm vi được giao:** `src/ingestion/crossref.py`, `src/ingestion/cleaning.py`, raw & clean artifacts.
 - **Công việc chi tiết đã hoàn thành:**
-  - _[Tự điền]_
+  - Hoàn thiện `src/ingestion/crossref.py`:
+    - `parse_crossref_payload`: bóc tách items từ payload Crossref REST API, làm sạch thẻ JATS XML `<jats:p>`, bóc tách `DOI` -> `paper_id`, `title`, `abstract` -> `summary`, `authors`, `categories`, `primary_category`, `published`, `updated`, `abs_url`, `pdf_url`, `comment`. Lọc bỏ các record thiếu DOI/title/abstract.
+    - `fetch_source_records`: gọi Crossref API với query, filter, rows cùng retry/backoff khi gặp 429/503/network error; tự động fallback đọc snapshot local `crossref_response.json` hoặc `crossref_records.json` khi `REFRESH_SOURCE` tắt hoặc mạng lỗi. Bảo toàn cả 2 file raw artifacts.
+    - `load_raw_records`: đọc file snapshot JSON và map thành danh sách `PaperRecord`.
+  - Hoàn thiện `src/ingestion/cleaning.py`:
+    - `build_clean_dataframe`: chuẩn hóa text & khoảng trắng, loại bỏ XML/HTML tags; tính toán `age_days = (run_date - published).days` chuẩn xác; tạo các cột helper `authors_joined`, `categories_joined`, `summary_chars`; sinh cấu trúc `text_for_embedding` 5 phần chuẩn hợp đồng (`Title: ...\nAuthors: ...\nPublished: ...\nCategories: ...\nSummary: ...`); lọc bỏ dòng xấu (`summary_chars < 30`); khử trùng lặp theo `paper_id`; sắp xếp dữ liệu theo ngày xuất bản giảm dần và `paper_id`.
+  - Bàn giao đầy đủ artifacts:
+    - `data/raw/crossref_response.json` (24 items) & `data/raw/crossref_records.json` (24 records)
+    - `data/clean/papers_clean.csv` & `data/clean/papers_clean.json` (24 rows đạt chuẩn Clean schema)
+    - Báo cáo cá nhân `report/2A202602540_NguyenTruongBao.md`
+  - Đã nghiệm thu:
+    - CP0: `Tín hiệu hoàn thành: Đã tải 24 bài báo`
+    - CP1: `Tín hiệu hoàn thành: Clean thành công 24 dòng`
 - **Điều học được / Đóng góp chính:**
-  - _[Tự điền]_
+  - Nắm vững nguyên tắc Raw Preservation (Data Lineage) và thiết kế pipeline Idempotent có khả năng tự phục hồi (Self-healing).
+  - Kỹ thuật tiền xử lý dữ liệu phi cấu trúc và bán cấu trúc (JATS XML, author name formatting, temporal metadata parsing).
+  - Chuẩn hóa contract giao tiếp dữ liệu giữa Data Engineering và AI Retrieval, giúp Vector Store Indexing (`retrieval/index.py`) và Data Quality Gate (`observability/quality.py`) vận hành mượt mà.
 
 ### ## PhamCuongQuoc-2A202602469
 - **Vai trò:** Observability & Evaluation.
