@@ -12,7 +12,7 @@
 |---:|---|---|---|---|---|---|
 | 1 | Đỗ Ngọc Phi | 2A202602531 | | Trưởng nhóm, Corruption & Integration (`corruption.py`, `phase1.py`, `corruption_flow.py`), review & merge | `feat/phi-corruption-integration` | `report/2A202602531_DoNgocPhi.md` |
 | 2 | Nguyễn Trường Bảo | 2A202602540 | | Data Ingestion & Cleaning (`crossref.py`, `cleaning.py`) | `feat/bao-ingestion-cleaning` | `report/2A202602540_NguyenTruongBao.md` |
-| 3 | Phạm Cường Quốc | 2A202602469 | | Observability & Evaluation (`quality.py`, `testset.py`, `reporting.py`) | `feat/quoc-quality-eval` | `report/2A202602469_PhamCuongQuoc.md` |
+| 3 | Phạm Cường Quốc | 2A202602469 | | Observability & Evaluation (`quality.py`, `testset.py`, `reporting.py`) | `feat/cuongquoc_2A202602469` | `report/2A202602469_PhamCuongQuoc.md` |
 
 ---
 
