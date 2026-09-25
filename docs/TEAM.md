@@ -60,7 +60,7 @@ Phần này **chặn đường của cả nhóm**, nên cần xong trước và 
 1. Mỗi người tạo nhánh riêng từ `main` mới nhất: `git checkout main && git pull && git checkout -b <nhánh>`.
 2. Commit nhỏ, message rõ ràng (ví dụ `feat(ingestion): parse crossref payload`), **dùng đúng tài khoản GitHub cá nhân** để được tính contributor.
 3. Xong phần việc → push nhánh và mở Pull Request vào `main`.
-4. Phi review (cùng Claude Code), yêu cầu sửa nếu cần, rồi merge. **Không tự merge vào `main`.**
+4. Phi review, yêu cầu sửa nếu cần, rồi merge. **Không tự merge vào `main`.**
 5. Sau khi `main` được cập nhật, các nhánh còn lại `git pull origin main` (hoặc rebase) để lấy code mới.
 
 **Thứ tự merge:** Bảo (ingestion/cleaning) → Quốc (quality/testset/reporting) → Phi (corruption/pipelines).
@@ -128,9 +128,16 @@ Luôn dùng `settings.paths.*` trong `src/core/config.py`, không tự đặt đ
 - **Vai trò:** Trưởng nhóm, Corruption & Integration, review & merge.
 - **Phạm vi được giao:** `src/ingestion/corruption.py`, `src/pipelines/phase1.py`, `src/pipelines/corruption_flow.py`, `report/group_report.md`.
 - **Công việc chi tiết đã hoàn thành:**
-  - _[Tự điền]_
+  - Lập phân công, quy trình nhánh/PR và data contract dùng chung trong `docs/TEAM.md`.
+  - `src/ingestion/corruption.py` — `corrupt_clean_dataframe`: 6 kịch bản lỗi tất định (seed 42), áp lên các nhóm dòng không giao nhau: drop 5 bài mới nhất, blank summary, inject noise, truncate title, lùi `published` 365 ngày (tính lại `age_days`), duplicate rows; tính lại `text_for_embedding`; ghi `data/results/corruption_log.json`.
+  - `src/pipelines/phase1.py`: 7 bước ingest → clean → quality gate (FAIL thì không index) → Chroma `papers-baseline` → test set (tái sử dụng file cố định) → evaluate → `phase1_report.md`, kèm demo agent tùy chọn.
+  - `src/pipelines/corruption_flow.py`: corrupt → quality/freshness → index `papers-corrupted` để đo silent failure → gate FAIL thì auto-repair từ `data/raw/crossref_records.json` → gate PASS → `papers-repaired` → evaluate → `corruption_report.md`, có kiểm tra repaired trùng khớp baseline.
+  - Review và merge nhánh của Bảo và Quốc; chạy kiểm chứng CP0–CP2 và tích hợp trước mỗi lần merge; chạy end-to-end trên `main` (exit code 0) với `gpt-4o-mini`.
+  - Báo cáo nhóm `report/group_report.md` và báo cáo cá nhân `report/2A202602531_DoNgocPhi.md`.
 - **Điều học được / Đóng góp chính:**
-  - _[Tự điền]_
+  - Repair đúng nghĩa là build lại từ raw bất biến bằng chính code baseline. Cách này idempotent và kiểm chứng được (metrics repaired = baseline: Hit Rate 1.0, Token F1 1.0).
+  - Mỗi lớp observability bắt một nhóm lỗi khác nhau: GX bắt duplicate và summary rỗng, Freshness bắt stale date, còn noise và truncate title lọt qua cả hai.
+  - Evaluator cũng có thể mắc silent failure: LLM judge chấm câu trả lời rỗng là đúng, nên cần đối chiếu với metric tất định như Token F1.
 
 ### ## NguyenTruongBao-2A202602540
 - **Vai trò:** Data Ingestion & Cleaning.
